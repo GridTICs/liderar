@@ -62,8 +62,11 @@ def conecta_server(host,port):
                 estado = i2c.read_byte_data(slave_addr, base+4*puerto)
                 if estado == 0:
                     a_uno(puerto)
+                    s.send(lee_estados(nro_educiaa))
+
                 else:
                     a_cero(puerto)
+                    s.send(lee_estados(nro_educiaa))
         else:
             s.send("\r\n comando invalido\r\n")
 print (host, port)
