@@ -7,12 +7,18 @@ i2c = smbus.SMBus(1) #canal 1 de raspy
 
 nro_educiaa = 2
 slave_addr = 0x40
-base = 7+ (nro_educiaa-1)*16
+#LED_ON, LED_OFF control registers (address 06h to 45h)
+#LEDn_ON_L
+#LEDn_ON_H
+#LEDn_OFF_L
+#LEDn_OFF_H
+base = 7 + (nro_educiaa-1)*16 # LED0_ON_H = 07h
 host = "192.168.2.2"
 port = 8000
 
 
 #Bit SLEEP saca de modo Low power mode. Oscillator off ver referencia[2] en Mode Register 1 ( Pagina 14 )
+#MODE1[4] - Mode register 1 (address 00h) - Bit 4 SLEEP
 i2c.write_byte_data (slave_addr, 0x00, 0x01)
 
 def lee_estados(nro_educiaa):
@@ -24,12 +30,12 @@ def lee_estados(nro_educiaa):
     return leido
 
 def a_uno (puerto):
-    i2c.write_byte_data(slave_addr, base +4*puerto, 0x01)
-    i2c.write_byte_data(slave_addr, base+2+4*puerto, 0x00)
+    i2c.write_byte_data(slave_addr, base+4*puerto, 0x10) #LEDn_ON_H[4] (LEDn full ON)
+    i2c.write_byte_data(slave_addr, base+2+4*puerto, 0x00) #LEDn_OFF_H[4] (LEDn full OFF)
 
 def a_cero (puerto):
     i2c.write_byte_data(slave_addr, base+4*puerto, 0x00)
-    i2c.write_byte_data(slave_addr, base+2+4*puerto, 0x01)
+    i2c.write_byte_data(slave_addr, base+2+4*puerto, 0x10)
 
 #for puerto in range(4): 
 #    i2c.write_byte_data(slave_addr, base +4*puerto, 0x01)
