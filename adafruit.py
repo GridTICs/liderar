@@ -87,69 +87,89 @@ def cadena_estados (nibble):
 def conecta_server(ip, port, nibble):
     global stop_threads
 
-    print("Hilo: "+ ip +":"+ str(port) +" Nibble: "+str(nibble))
+    while (not stop_threads):
 
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.connect((ip, port))
-        s.setblocking(False)
-    except socket.error as e:
-        print("No se pudo conectar a " + ip + ":" +str(port) )
-        sys.exit()
+        print("Hilo: "+ ip +":"+ str(port) +" Nibble: "+str(nibble))
 
-    if (nibble >= 0 and nibble <= 3):
-        slave_addr = slave0_addr
-    elif (nibble >= 4 and nibble <= 7):
-        slave_addr = slave1_addr
-        #nibble -= 4
-    else:
-        print("Nibble fuera de rango" + str(nibble))
-        sys.exit()
-
-    anterior = timer()
-
-    while True:
         try:
-            comando = s.recv(1024).decode()
-            #print (comando.decode())
-            #print (len(comando))
-            if len(comando) == 1:
-                if comando == "s":
-                    #estado = format(lee_estados(nibble),'04b')+ "\r\n"
-                    estado = cadena_estados(nibble)
-                    #s.send(estado.encode())
-                elif comando == "1" or comando == "2" or comando == "3" or comando == "4":
-                    pin = int(comando)-1
-                    estado = 0x10 and i2c.read_byte_data(slave_addr, base + 16*nibble + 4*pin)
-                    # print(estado)
-                    if estado == 0:
-                        a_uno(nibble, pin)
-                    else:
-                        a_cero(nibble, pin)
-                    #estado = format(lee_estados(nibble),'04b')+ "\r"
-                    #estado = cadena_estados(nibble)
-                    #s.send(estado.encode())
-            else:
-                info = "\r\n Comando invalido\r\n"
-                s.send(info.encode())
-
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.connect((ip, port))
+            s.setblocking(True)
         except socket.error as e:
-            #print(str(port))
-            #print(timer())
-            if stop_threads == True:
-                break
+            print("No se pudo conectar a " + ip + ":" +str(port) )
+            sys.exit()
 
-        actual = timer()
-        if (actual - anterior)> 0.2:
-            info = "\33[2J\033[2;2H             Estímulos EDU-CIAA\n\n\r  "
-            s.send(info.encode())
-            estado = cadena_estados(nibble)
-            s.send(estado.encode())
-            info = "\r\n\n     ^^^         ^^^         ^^^         ^^^   "
-            info += "\r\n  [Tecla 1]   [Tecla 2]   [Tecla 3]   [Tecla 4]"
-            info += "\r\n\n           Dirección: 0x" + format(slave_addr, '02x') + "  Nibble: " + str(nibble)
-            s.send(info.encode())
-            anterior = actual
+        if (nibble >= 0 and nibble <= 3):
+            slave_addr = slave0_addr
+        elif (nibble >= 4 and nibble <= 7):
+            slave_addr = slave1_addr
+        else:
+            print("Nibble fuera de rango" + str(nibble))
+            sys.exit()
+
+        #Envío consola de texto
+        info = "\33[2J\033[2;2H             Estímulos EDU-CIAA\n\n\r  "
+        s.send(info.encode())
+        estado = cadena_estados(nibble)
+        s.send(estado.encode())
+        info = "\r\n\n     ^^^         ^^^         ^^^         ^^^   "
+        info += "\r\n  [Tecla 1]   [Tecla 2]   [Tecla 3]   [Tecla 4]"
+        info += "\r\n\n           Dirección: 0x" + format(slave_addr, '02x') + "  Nibble: " + str(nibble)
+        s.send(info.encode())
+
+        anterior = timer()
+
+        while True:
+            try:
+                comando = s.recv(1024).decode()
+                #print (comando.decode())
+                #print (len(comando))
+                if len(comando) == 1:
+                    #if comando == "s":
+                    #    #estado = format(lee_estados(nibble),'04b')+ "\r\n"
+                    #    estado = cadena_estados(nibble)
+                    #    #s.send(estado.encode())
+                    if comando == "1" or comando == "2" or comando == "3" or comando == "4":
+                        pin = int(comando)-1
+                        estado = 0x10 and i2c.read_byte_data(slave_addr, base + 16*nibble + 4*pin)
+                        # print(estado)
+                        if estado == 0:
+                            a_uno(nibble, pin)
+                        else:
+                            a_cero(nibble, pin)
+                        #estado = format(lee_estados(nibble),'04b')+ "\r"
+                        #estado = cadena_estados(nibble)
+                        #s.send(estado.encode())
+                    info = "\33[2J\033[2;2H             Estímulos EDU-CIAA\n\n\r  "
+                    s.send(info.encode())
+                    estado = cadena_estados(nibble)
+                    s.send(estado.encode())
+                    info = "\r\n\n     ^^^         ^^^         ^^^         ^^^   "
+                    info += "\r\n  [Tecla 1]   [Tecla 2]   [Tecla 3]   [Tecla 4]"
+                    info += "\r\n\n           Dirección: 0x" + format(slave_addr, '02x') + "  Nibble: " + str(nibble)
+                    s.send(info.encode())
+                else:
+                    info = "\r\n Comando invalido\r\n"
+                    s.send(info.encode())
+
+            except socket.error as e:
+                #print(str(port))
+                #print(timer())
+                if stop_threads == True:
+                    break
+
+            actual = timer()
+            # Envío periódico de la consola de texto
+            if (actual - anterior)> 0.2:
+                #info = "\33[2J\033[2;2H             Estímulos EDU-CIAA\n\n\r  "
+                #s.send(info.encode())
+                #estado = cadena_estados(nibble)
+                #s.send(estado.encode())
+                #info = "\r\n\n     ^^^         ^^^         ^^^         ^^^   "
+                #info += "\r\n  [Tecla 1]   [Tecla 2]   [Tecla 3]   [Tecla 4]"
+                #info += "\r\n\n           Dirección: 0x" + format(slave_addr, '02x') + "  Nibble: " + str(nibble)
+                #s.send(info.encode())
+                anterior = actual
 
 def main():
     global stop_threads, config
